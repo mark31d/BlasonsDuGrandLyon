@@ -40,7 +40,7 @@ const LoaderScript = ({ onEnd }) => {
             { opacity: appearingAnim }, 
           ]}
         >
-          Wolves World Quest
+          Blasons Du Grand Lyon
         </Animated.Text>
       </Animated.View>
     </ImageBackground>

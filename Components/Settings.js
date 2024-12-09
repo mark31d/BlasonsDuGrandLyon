@@ -2,158 +2,172 @@ import React from 'react';
 import { 
   View, 
   Text, 
-  Switch, 
   StyleSheet, 
   TouchableOpacity, 
-  Dimensions, 
   ImageBackground, 
   SafeAreaView 
 } from 'react-native';
+import Slider from '@react-native-community/slider'; // Используем Slider из библиотеки
 import { useAudio } from './AudioScript';
 import { useVibration } from './Vibration';
-
-const { width, height } = Dimensions.get('window');
 
 const SettingsScreen = ({ navigation }) => {
   const { isMusicPlaying, setIsMusicPlaying, volume, setVolume } = useAudio();
   const { vibrationOn, setVibrationOn } = useVibration();
 
-  const handleVolumeChange = (change) => {
-    const newVolume = Math.max(0, Math.min(1, volume + change));
-    setVolume(newVolume);
-  };
-
   return (
-    <ImageBackground source={require('../assets/ImageBack.jpg')} style={styles.backgroundImage}>
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.container}>
-          <Text style={styles.title}>Settings</Text>
+    <ImageBackground source={require('../assets/ImageBack.jpg')} style={styles.background}>
+      <SafeAreaView style={styles.container}>
+        <Text style={styles.title}>Settings</Text>
 
-         
-          <View style={styles.setting}>
-            <Text style={styles.settingText}>Vibration</Text>
-            <Switch
-              value={vibrationOn}
-              onValueChange={setVibrationOn}
-              style={styles.switch}
-            />
-          </View>
-
-        
-          <View style={styles.setting}>
-            <Text style={styles.settingText}>Music Volume: {Math.round(volume * 100)}%</Text>
-            <View style={styles.volumeControls}>
-              <TouchableOpacity onPress={() => handleVolumeChange(-0.1)} style={styles.button}>
-                <Text style={styles.buttonText}>-</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleVolumeChange(0.1)} style={styles.button}>
-                <Text style={styles.buttonText}>+</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          
-          <View style={styles.setting}>
-            <Text style={styles.settingText}>Turn Music On/Off</Text>
-            <Switch
-              value={isMusicPlaying}
-              onValueChange={setIsMusicPlaying}
-              style={styles.switch}
-            />
-          </View>
-
-          
-          <TouchableOpacity  style={styles.exitButton} onPress={() => navigation.navigate('Menu')}>
-            <Text style={styles.exitButtonText}>Return to Main Menu</Text>
+        {/* Ползунок для громкости музыки */}
+        <View style={styles.setting}>
+          <Text style={styles.settingText}>Music Volume: {Math.round(volume * 100)}%</Text>
+          <Slider
+            style={styles.slider}
+            value={volume}
+            onValueChange={setVolume}
+            minimumValue={0}
+            maximumValue={1}
+            step={0.01}
+            minimumTrackTintColor="#8B4513"
+            maximumTrackTintColor="#F4E3C7"
+            thumbTintColor="#8B4513"
+          />
+          <TouchableOpacity
+            onPress={() => setIsMusicPlaying(!isMusicPlaying)}
+            style={[
+              styles.toggleButton, 
+              isMusicPlaying && styles.toggleButtonActive
+            ]}
+          >
+            <Text style={styles.toggleButtonText}>
+              {isMusicPlaying ? 'Music OFF' : 'Music ON'}
+            </Text>
           </TouchableOpacity>
         </View>
+
+        {/* Кнопка для вибрации */}
+        <View style={styles.setting}>
+          <Text style={styles.settingText}>Vibration</Text>
+          <TouchableOpacity
+            onPress={() => setVibrationOn(!vibrationOn)}
+            style={[
+              styles.vibrationButton, 
+              vibrationOn && styles.vibrationButtonActive
+            ]}
+          >
+            <Text style={styles.vibrationButtonText}>
+              {vibrationOn ? 'Vibration OFF' : 'Vibration ON'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Кнопка для возвращения в главное меню */}
+        <TouchableOpacity
+          style={styles.exitButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.exitButtonText}>Return to Menu</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     </ImageBackground>
   );
-};
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  backgroundImage: {
+};const styles = StyleSheet.create({
+  background: { 
     flex: 1,
     resizeMode: 'cover',
+    justifyContent: 'center',
   },
   container: {
     flex: 1,
-    padding: width * 0.05,
+    justifyContent: 'space-evenly',
+    marginBottom: 10,
   },
   title: {
-    fontSize: width * 0.07,
+    fontSize: 30,
     fontWeight: 'bold',
-    marginBottom: height * 0.03,
-    color: 'white', 
+    marginBottom: 20,
+    color: '#4B3A2F',
     textAlign: 'center',
+    backgroundColor: '#F4E3C7',
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#8B4513',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    alignSelf: 'center',
   },
   setting: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginVertical: height * 0.02,
-    padding: height * 0.025,
-    borderRadius: 20,
-    backgroundColor: '#6C81A8', 
-    borderColor: 'white', 
+    marginBottom: 20,
+    backgroundColor: '#F4E3C7',
+    padding: 10,
+    borderRadius: 15,
     borderWidth: 2,
-    opacity:0.9,
+    borderColor: '#8B4513',
+    width: '90%',
+    alignSelf: 'center',
   },
   settingText: {
-    fontSize: width * 0.05,
-    color: '#FFFFFF',
-    flex: 1,
-  },
-  volumeControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  button: {
-    width: width * 0.12,
-    height: height * 0.06,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 20,
-    marginHorizontal: width * 0.03,
-    
-  },
-  buttonText: {
-    fontSize: width * 0.06,
-    color: '#333',
+    fontSize: 16,
     fontWeight: 'bold',
+    color: '#8B4513',
+    marginBottom: 10,
   },
-  switch: {
-    trackColor: { 
-      false: '#FF6347', 
-      true: '#5A9BD5',  
-    },
-    thumbColor: '#FFFFFF',
+  slider: {
+    width: '100%',
+    height: 40,
+  },
+  toggleButton: {
+    marginTop: 10,
+    backgroundColor: '#4B3A2F',
+    borderWidth: 2,
+    borderColor: '#8B4513',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  toggleButtonActive: {
+    backgroundColor: '#8B4513',
+  },
+  toggleButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  vibrationButton: {
+    marginTop: 10,
+    backgroundColor: '#4B3A2F',
+    borderWidth: 2,
+    borderColor: '#8B4513',
+    borderRadius: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  vibrationButtonActive: {
+    backgroundColor: '#8B4513',
+  },
+  vibrationButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
   exitButton: {
-    marginTop: height * 0.05,
-    backgroundColor: '#6C81A8', 
-    borderRadius: 25,
-    paddingVertical: height * 0.025,
-    paddingHorizontal: width * 0.2,
+    backgroundColor: '#F4E3C7',
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#8B4513',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
     alignSelf: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 5,
-    borderWidth:1,
-    borderColor:'white',
   },
   exitButtonText: {
     fontWeight: 'bold',
-    fontSize: width * 0.05,
-    color: '#FFFFFF',
+    fontSize: 16,
+    color: '#4B3A2F',
   },
 });
 
