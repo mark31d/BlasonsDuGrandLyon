@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,13 +8,14 @@ import {
   Image,
   ImageBackground,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 
 const Menu = ({ navigation }) => {
   const [modalVisible, setModalVisible] = useState(true);
   const [infoVisible, setInfoVisible] = useState(false);
   const [currentInfoIndex, setCurrentInfoIndex] = useState(0);
-
- 
+  const [secondLocationUnlocked, setSecondLocationUnlocked] = useState(false);
 const facts = [
   {
     title: "The Birth of the Eiffel Tower",
@@ -56,262 +57,293 @@ const facts = [
     text: "Paris is known for its cafés, which became not only places to enjoy food and drinks but also centers for cultural and intellectual life. Art, literature, and politics - all of these were discussed over a cup of coffee in the cafés of Paris. Famous writers, artists, and politicians often met in Parisian cafés to discuss important ideas and social issues that influenced the cultural development of the world.",
   },
 ];
+useEffect(() => {
+  const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+  setCurrentInfoIndex(dayOfYear % facts.length);
+}, []);
 
-  useEffect(() => {
-    const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
-    setCurrentInfoIndex(dayOfYear % facts.length);
-  }, []);
+const handleCloseModal = () => {
+  setModalVisible(false);
+  setInfoVisible(true);
+};
 
-  const handleCloseModal = () => {
-    setModalVisible(false);
-    setInfoVisible(true);
-  };
+// Функция загрузки состояния локаций
+const loadLocations = async () => {
+  try {
+    const jsonValue = await AsyncStorage.getItem('locations');
+    if (jsonValue) {
+      const loadedLocations = JSON.parse(jsonValue);
+      const secondLocation = loadedLocations.find((loc) => loc.id === 2);
+      setSecondLocationUnlocked(secondLocation && secondLocation.unlocked);
+    } else {
+      // Если нет данных о локациях - значит вторая локация не открыта
+      setSecondLocationUnlocked(false);
+    }
+  } catch (error) {
+    console.error('Error loading locations in Menu:', error);
+    setSecondLocationUnlocked(false);
+  }
+};
 
-  return (
-    <ImageBackground
-      source={require('../assets/ImageBack.jpg')}
-      style={styles.background}
+
+useFocusEffect(
+  useCallback(() => {
+    loadLocations();
+  }, [])
+);
+
+return (
+  <ImageBackground
+    source={require('../assets/ImageBack.jpg')}
+    style={styles.background}
+  >
+    <Modal
+      visible={modalVisible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={() => setModalVisible(false)}
     >
-      
-      <Modal
-        visible={modalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setModalVisible(false)}
+      <ImageBackground
+        source={require('../assets/ImageBack.jpg')}
+        style={styles.modalBackground}
       >
-        <ImageBackground
-          source={require('../assets/ImageBack.jpg')}
-          style={styles.modalBackground}
-        >
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Welcome to Blasons du Grand Lyon</Text>
-            <Text style={styles.modalText}>
-              Prepare yourself for an exciting adventure where history, puzzles, and the coats of arms of Greater Lyon intertwine into one great mystery. 
-              Your goal is to restore an ancient coat of arms and uncover its riddles and secrets tied to majestic lions. 
-              Are you ready to begin your journey and unlock the secrets of the heraldry?
-            </Text>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={handleCloseModal}
-            >
-              <Text style={styles.closeButtonText}>Uncover Secrets</Text>
-            </TouchableOpacity>
-          </View>
-        </ImageBackground>
-      </Modal>
-
-      {/* Interesting Information Screen */}
-      {infoVisible && (
         <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>{facts[currentInfoIndex]?.title || "No Title"}</Text>
-          <Text style={styles.modalText}>{facts[currentInfoIndex]?.text || "No Content Available"}</Text>
+          <Text style={styles.modalTitle}>Welcome to Blasons du Grand Lyon!</Text>
+          <Text style={styles.modalText}>
+          Prepare yourself for an exciting adventure where history, puzzles, and the coats of arms of Greater Lyon intertwine into one great mystery. In this game, you will become a researcher traveling across France to restore an ancient coat of arms, unraveling its riddles and secrets tied to the majestic lions.
+Your goal is to overcome a series of interactive quizzes, puzzles, and dialogues to uncover all the pieces of the coat of arms and discover its true meaning.
+Are you ready to begin your journey and unlock the secrets of the heraldry?
+
+          </Text>
           <TouchableOpacity
             style={styles.closeButton}
-            onPress={() => setInfoVisible(false)}
+            onPress={handleCloseModal}
           >
-            <Text style={styles.closeButtonText}>Back to Menu</Text>
+            <Text style={styles.closeButtonText}>Uncover Secrets</Text>
           </TouchableOpacity>
         </View>
-      )}
+      </ImageBackground>
+    </Modal>
 
-      {!modalVisible && !infoVisible && (
-        <View style={styles.container}>
-          {/* Top Row with Arrow and Image Buttons */}
-          <View style={styles.row}>
-            <TouchableOpacity
-              onPress={() => setModalVisible(true)}
-              style={styles.imageButton}
-            >
-               <Image
-                source={require('../assets/right-arrow.png')}
-                style={styles.iconText}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Gallery')}
-              style={styles.imageButton}
-            >
-              <Image
-                source={require('../assets/emblem.png')}
-                style={styles.buttonImage}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Settings')}
-              style={styles.imageButton}
-            >
-              <Image
-                source={require('../assets/brand.png')}
-                style={styles.buttonImage}
-              />
-            </TouchableOpacity>
-          </View>{/* Other Menu Buttons */}
+    {infoVisible && (
+      <View style={styles.modalContent}>
+        <Text style={styles.modalTitle}>{facts[currentInfoIndex]?.title || "No Title"}</Text>
+        <Text style={styles.modalText}>{facts[currentInfoIndex]?.text || "No Content Available"}</Text>
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={() => setInfoVisible(false)}
+        >
+          <Text style={styles.closeButtonText}>Back to Menu</Text>
+        </TouchableOpacity>
+      </View>
+    )}
+
+    {!modalVisible && !infoVisible && (
+      <View style={styles.container}>
+        <View style={styles.row}>
           <TouchableOpacity
-            onPress={() => navigation.navigate('Journey')}
-            style={styles.menuButton}
+            onPress={() => setModalVisible(true)}
+            style={styles.imageButton}
           >
-            <Text style={styles.menuText}>Start Journey</Text>
+             <Image
+              source={require('../assets/right-arrow.png')}
+              style={styles.iconText}
+            />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => navigation.navigate('Overview')}
-            style={styles.menuButton}
+            onPress={() => navigation.navigate('Gallery')}
+            style={styles.imageButton}
           >
-            <Text style={styles.menuText}>France Overview</Text>
+            <Image
+              source={require('../assets/emblem.png')}
+              style={styles.buttonImage}
+            />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => navigation.navigate('About')}
-            style={styles.menuButton}
+            onPress={() => navigation.navigate('Settings')}
+            style={styles.imageButton}
           >
-            <Text style={styles.menuText}>About Us</Text>
+            <Image
+              source={require('../assets/brand.png')}
+              style={styles.buttonImage}
+            />
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Rate')}
-            style={styles.menuButton}
-          >
-            <Text style={[styles.menuText, styles.rateText]}>Rate Us</Text>
-            
-          </TouchableOpacity>
-          <Image
-                source={require('../assets/leo.png')}
-                style={styles.image}
-              />
         </View>
-      )}
-    </ImageBackground>
-  );
+
+        {/* Кнопка START JOURNEY */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Journey')}
+          style={styles.menuButton}
+        >
+          <Text style={styles.menuText}>Start Journey</Text>
+        </TouchableOpacity>{/* Кнопка CONTINUE GAME появляется только если вторая локация открыта */}
+        {secondLocationUnlocked && (
+          <TouchableOpacity
+            onPress={() => navigation.navigate('MapScreen')}
+            style={styles.menuButton}
+          >
+            <Text style={styles.menuText}>Continue Game</Text>
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity
+          onPress={() => navigation.navigate('FranceOverview')}
+          style={styles.menuButton}
+        >
+          <Text style={styles.menuText}>France Overview</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => navigation.navigate('About')}
+          style={styles.menuButton}
+        >
+          <Text style={styles.menuText}>About Us</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => navigation.navigate('RateUs')}
+          style={styles.menuButton}
+        >
+          <Text style={[styles.menuText, styles.rateText]}>Rate Us</Text>
+        </TouchableOpacity>
+
+        <Image
+          source={require('../assets/leo.png')}
+          style={styles.image}
+        />
+      </View>
+    )}
+  </ImageBackground>
+);
 };
+
 const styles = StyleSheet.create({
-  image:{
-    width: 100,
-    height: 100,
-    backgroundColor:'#F4E3C7',
-    borderRadius:50,
-    
-  },
-  background: {
-    flex: 1,
-    resizeMode: 'cover',
-    justifyContent: 'center',
-  },
-  container: {
-    flex: 1,
-    justifyContent: 'space-evenly',
-    alignItems: 'center',
-    padding: 20,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '90%',
-    marginTop: 50,
-  },
-  iconButton: {
-    paddingHorizontal: 10,
-  },
-  iconText: {
-    
-    width: 50,
-    height: 50,
-  },
-  imageButton: {
-    backgroundColor:'#F4E3C7',
-    borderRadius:20,
-    borderWidth:2,
-    borderColor:'#8B4513',
-    width: 70,
-    height: 70,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'contain',
-  },
-  menuButton: {
-    backgroundColor: '#F4E3C7',
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 15,
-    alignItems: 'center',
-    width: '80%',
-    marginBottom: 15,
-    borderWidth: 2,
-    borderColor: '#8B4513',
-    shadowColor: '#000',
-    shadowOffset: { width: 3, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  menuText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#4B3A2F',
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-    textAlign: 'center',
-  },
-  rateText: {
-    color: '#DAA520',
-    fontWeight: '700',
-  },
-  modalBackground: {
-    flex: 1,
-    resizeMode: 'cover',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-    height: '100%',
-  },
-  modalContent: {
-    width: '90%',
-    backgroundColor: 'rgba(245, 245, 220, 0.9)',
-    borderRadius: 15,
-    padding: 20,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#8B4513',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.8,
-    shadowRadius: 3,
-    elevation: 10,
-    alignSelf:'center',
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#4B3A2F',
-    textAlign: 'center',
-  },
-  modalText: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    textAlign: 'justify',
-    marginBottom: 20,
-    color: '#4B3A2F',
-  },
-  closeButton: {
-    backgroundColor: '#8B4513',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#DAA520',
-    shadowColor: '#000',
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-  },
-  closeButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
+image:{
+  width: 100,
+  height: 100,
+  backgroundColor:'#F4E3C7',
+  borderRadius:50,
+},
+background: {
+  flex: 1,
+  resizeMode: 'cover',
+  justifyContent: 'center',
+},
+container: {
+  flex: 1,
+  justifyContent: 'space-evenly',
+  alignItems: 'center',
+  padding: 20,
+},
+row: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  width: '90%',
+  marginTop: 50,
+},
+iconText: {
+  width: 50,
+  height: 50,
+},
+imageButton: {
+  backgroundColor:'#F4E3C7',
+  borderRadius:20,
+  borderWidth:2,
+  borderColor:'#8B4513',
+  width: 70,
+  height: 70,
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+buttonImage: {
+  width: '100%',
+  height: '100%',
+  resizeMode: 'contain',
+},
+menuButton: {
+  backgroundColor: '#F4E3C7',
+  paddingVertical: 15,
+  paddingHorizontal: 20,
+  borderRadius: 15,
+  alignItems: 'center',
+  width: '80%',
+  marginBottom: 15,
+  borderWidth: 2,
+  borderColor: '#8B4513',
+  shadowColor: '#000',
+  shadowOffset: { width: 3, height: 3 },
+  shadowOpacity: 0.3,
+  shadowRadius: 4,
+  elevation: 5,
+},
+menuText: {
+  fontSize: 18,
+  fontWeight: '600',
+  color: '#4B3A2F',
+  textTransform: 'uppercase',
+  letterSpacing: 1.2,
+  textAlign: 'center',
+},
+rateText: {
+  color: '#DAA520',
+  fontWeight: '700',
+},
+modalBackground: {
+  flex: 1,
+  resizeMode: 'cover',
+  justifyContent: 'center',
+  alignItems: 'center',
+  width: '100%',
+  height: '100%',
+},
+modalContent: {
+  width: '90%',
+  backgroundColor: 'rgba(245, 245, 220, 0.9)',
+  borderRadius: 15,
+  padding: 20,
+  alignItems: 'center',
+  borderWidth: 2,
+  borderColor: '#8B4513',
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.8,
+  shadowRadius: 3,
+  elevation: 10,
+  alignSelf:'center',
+},
+modalTitle: {
+  fontSize: 22,
+  fontWeight: 'bold',
+  marginBottom: 20,
+  color: '#4B3A2F',
+  textAlign: 'center',
+},
+modalText: {
+  fontWeight: 'bold',
+  fontSize: 16,
+  textAlign: 'justify',
+  marginBottom: 20,
+  color: '#4B3A2F',
+},
+closeButton: {
+  backgroundColor: '#8B4513',
+  paddingVertical: 10,
+  paddingHorizontal: 20,
+  borderRadius: 10,
+  borderWidth: 2,
+  borderColor: '#DAA520',
+  shadowColor: '#000',
+  shadowOffset: { width: 2, height: 2 },
+  shadowOpacity: 0.3,
+  shadowRadius: 3,
+},
+closeButtonText: {
+  color: '#fff',
+  fontSize: 16,
+  fontWeight: '600',
+  textAlign: 'center',
+},
 });
 
 export default Menu;

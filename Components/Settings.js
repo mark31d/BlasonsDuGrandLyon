@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
   ImageBackground, 
-  SafeAreaView 
+  SafeAreaView, 
+  Modal
 } from 'react-native';
-import Slider from '@react-native-community/slider'; // Используем Slider из библиотеки
+import Slider from '@react-native-community/slider';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAudio } from './AudioScript';
 import { useVibration } from './Vibration';
 
@@ -15,12 +17,22 @@ const SettingsScreen = ({ navigation }) => {
   const { isMusicPlaying, setIsMusicPlaying, volume, setVolume } = useAudio();
   const { vibrationOn, setVibrationOn } = useVibration();
 
+  const [showResetModal, setShowResetModal] = useState(false);
+
+  const resetProgress = async () => {
+    try {
+      await AsyncStorage.clear();
+      alert('Your progress has been reset!');
+    } catch (e) {
+      console.error('Failed to reset progress:', e);
+    }
+  };
+
   return (
     <ImageBackground source={require('../assets/ImageBack.jpg')} style={styles.background}>
       <SafeAreaView style={styles.container}>
         <Text style={styles.title}>Settings</Text>
 
-        {/* Ползунок для громкости музыки */}
         <View style={styles.setting}>
           <Text style={styles.settingText}>Music Volume: {Math.round(volume * 100)}%</Text>
           <Slider
@@ -47,7 +59,6 @@ const SettingsScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Кнопка для вибрации */}
         <View style={styles.setting}>
           <Text style={styles.settingText}>Vibration</Text>
           <TouchableOpacity
@@ -63,17 +74,63 @@ const SettingsScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Кнопка для возвращения в главное меню */}
+        {/* Кнопка для сброса прогресса */}
+        <View style={styles.setting}>
+          <Text style={styles.settingText}>Reset Progress</Text>
+          <TouchableOpacity
+            onPress={() => setShowResetModal(true)}
+            style={styles.resetButton}
+          >
+            <Text style={styles.resetButtonText}>RESET</Text>
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity
           style={styles.exitButton}
           onPress={() => navigation.goBack()}
         >
           <Text style={styles.exitButtonText}>Return to Menu</Text>
-        </TouchableOpacity>
+        </TouchableOpacity>{/* Модальное окно подтверждения сброса */}
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={showResetModal}
+          onRequestClose={() => setShowResetModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalText}>Are you sure you want to reset your progress?</Text>
+              <Text style={styles.modalWarning}>
+                Warning! If you reset your progress, all saved information will be lost and cannot be restored.
+                Please make sure you want to proceed.
+              </Text>
+              <View style={styles.modalButtonsContainer}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.resetConfirmButton]}
+                  onPress={() => {
+                    setShowResetModal(false);
+                    resetProgress();
+                  }}
+                >
+                  <Text style={styles.modalButtonText}>Reset</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setShowResetModal(false)}
+                >
+                  <Text style={styles.modalButtonText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
       </SafeAreaView>
     </ImageBackground>
   );
-};const styles = StyleSheet.create({
+};
+
+const styles = StyleSheet.create({
   background: { 
     flex: 1,
     resizeMode: 'cover',
@@ -114,6 +171,7 @@ const SettingsScreen = ({ navigation }) => {
     fontWeight: 'bold',
     color: '#8B4513',
     marginBottom: 10,
+    textAlign: 'center',
   },
   slider: {
     width: '100%',
@@ -155,6 +213,21 @@ const SettingsScreen = ({ navigation }) => {
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
+  resetButton: {
+    marginTop: 10,
+    backgroundColor: '#4B3A2F',
+    borderWidth: 2,
+    borderColor: '#8B4513',
+    borderRadius: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  resetButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
   exitButton: {
     backgroundColor: '#F4E3C7',
     borderRadius: 20,
@@ -168,6 +241,54 @@ const SettingsScreen = ({ navigation }) => {
     fontWeight: 'bold',
     fontSize: 16,
     color: '#4B3A2F',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)', 
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  modalContainer: {
+    backgroundColor: '#F4E3C7',
+    padding: 20,
+    borderRadius: 15,
+    borderWidth: 2,
+    borderColor: '#8B4513',
+    width: '80%',
+  },
+  modalText: {fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4B3A2F',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  modalWarning: {
+    fontSize: 14,
+    color: '#4B3A2F',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  modalButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#8B4513',
+    backgroundColor: '#4B3A2F',
+  },
+  modalButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  resetConfirmButton: {
+    backgroundColor: '#8B4513',
+  },
+  cancelButton: {
+    backgroundColor: '#4B3A2F',
   },
 });
 

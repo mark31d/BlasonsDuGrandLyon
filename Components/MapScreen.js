@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,116 +10,231 @@ import {
   Dimensions,
   ImageBackground,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width: screenWidth } = Dimensions.get('window');
-const MapScreen = ({ navigation }) => {
-    const [locations, setLocations] = useState([
-      { id: 1, unlocked: true, x: 42, y: 40, image: require('../assets/shop.png') },
-      { id: 2, unlocked: false, x: 262, y: 40, image: require('../assets/architecture.png') },
-      { id: 3, unlocked: false, x: 155, y: 150, image: require('../assets/glass.png') },
-      { id: 4, unlocked: false, x: 42, y: 265, image: require('../assets/notre-dame.png') },
-      { id: 5, unlocked: false, x: 262, y: 265, image: require('../assets/eiffel-tower.png') },
-    ]);
-  
-    const [hoveredLocation, setHoveredLocation] = useState(null);
-  
-    const unlockNextLocation = () => {
-      setLocations((prev) => {
-        const nextIndex = prev.findIndex((loc) => !loc.unlocked);
-        if (nextIndex !== -1) {
-          const updated = [...prev];
-          updated[nextIndex].unlocked = true;
-          return updated;
-        }
-        return prev;
-      });
+
+const MapScreen = ({ navigation, route }) => {
+  const [locations, setLocations] = useState([
+    { id: 1, unlocked: true, x: 42, y: 40, image: require('../assets/shop.png') },
+    { id: 2, unlocked: false, x: 262, y: 40, image: require('../assets/architecture.png') },
+    { id: 3, unlocked: false, x: 155, y: 150, image: require('../assets/glass.png') },
+    { id: 4, unlocked: false, x: 42, y: 265, image: require('../assets/notre-dame.png') },
+    { id: 5, unlocked: false, x: 262, y: 265, image: require('../assets/eiffel-tower.png') },
+  ]);
+  const resetGame = async () => {
+    try {
+      await AsyncStorage.removeItem('locations');
+      // Сбросим состояние вручную
+      setLocations([
+        { id: 1, unlocked: true, x: 42, y: 40, image: require('../assets/shop.png') },
+        { id: 2, unlocked: false, x: 262, y: 40, image: require('../assets/architecture.png') },
+        { id: 3, unlocked: false, x: 155, y: 150, image: require('../assets/glass.png') },
+        { id: 4, unlocked: false, x: 42, y: 265, image: require('../assets/notre-dame.png') },
+        { id: 5, unlocked: false, x: 262, y: 265, image: require('../assets/eiffel-tower.png') },
+      ]);
+      setShowCongrats(false);
+    } catch (e) {
+      console.error('Error resetting game:', e);
+    }
+  };
+  const [hoveredLocation, setHoveredLocation] = useState(null);
+  const [crestCount, setCrestCount] = useState(0);
+  const [showCongrats, setShowCongrats] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const mapSize = screenWidth * 0.98;
+
+ 
+  const saveLocations = async (locationsToSave) => {
+    try {
+      const jsonValue = JSON.stringify(locationsToSave);
+      await AsyncStorage.setItem('locations', jsonValue);
+    } catch (e) {
+      console.error('Error saving locations:', e);
+    }
+  };
+
+  // Загрузка состояния
+  const loadLocations = async () => {
+    try {
+      const jsonValue = await AsyncStorage.getItem('locations');
+      return jsonValue != null ? JSON.parse(jsonValue) : null;
+    } catch (e) {
+      console.error('Error loading locations:', e);
+      return null;
+    }
+  };
+  useEffect(() => {
+    if (!isLoaded) return; // Ждём, пока данные загрузятся
+    const { crestId } = route.params || {};
+    if (crestId) {
+      console.log('Received crestId:', crestId);
+      unlockNextLocation(crestId);
+    }
+  }, [route.params, isLoaded]);
+  // Загрузка при старте
+  useEffect(() => {
+    const fetchLocations = async () => {
+      const stored = await loadLocations();
+      if (stored) {
+        setLocations(stored);
+      }
+      setIsLoaded(true); // Данные загружены
     };
+    fetchLocations();
+  }, []);
+
+  // Сохранение при изменении
+  useEffect(() => {
+    saveLocations(locations);
+  }, [locations]);
+
+  const unlockNextLocation = (crestId) => {
+    setLocations((prev) => {
+      let foundCurrent = false;
+      const updated = prev.map((location, index) => {
+        // Разблокируем текущую локацию
+        if (location.id === crestId) {
+          foundCurrent = true;
+          return { ...location, unlocked: true };
+        }
+        // Если нашли текущую и следующая закрыта - разблокируем её
+        if (foundCurrent && !location.unlocked) {
+          foundCurrent = false; // сбрасываем флаг, чтобы разблокировать только одну следующую локацию
+          return { ...location, unlocked: true };
+        }
+        // Удаляем логику закрытия предыдущей локации полностью!
+        return location;
+      });
+
+      return updated;
+    });
+
+    // Обновляем счетчик
+    setCrestCount((prev) => {
+      
+      if (crestId === 5) {
+        setShowCongrats(true);
+      }
+      
+    });
+  };
+
   
-    const mapSize = screenWidth * 0.98;
-  
-    return (
-      <ImageBackground
-        source={require('../assets/ImageBack.jpg')}
-        style={styles.backgroundImage}
-      >
-        <SafeAreaView style={styles.safeArea}>
-          <ScrollView contentContainerStyle={styles.scrollContent}>
-            <View style={styles.container}>
-              <TouchableOpacity
-                onPress={() => navigation.goBack()}
-                style={styles.iconButton}
-              >
-                <Image
-                  source={require('../assets/right-arrow.png')}
-                  style={styles.exitButtonText}
-                />
-              </TouchableOpacity>
-  
-              <View style={[styles.mapContainer, { width: mapSize, height: mapSize, marginHorizontal: (screenWidth - mapSize) / 2 }]}>
-                <Image
-                  source={require('../assets/map.jpg')}
-                  style={styles.mapImage}
-                />
-                {locations.map((location) => (
-                  <TouchableOpacity
-                    key={location.id}
-                    style={[
-                      styles.location,
-                      { left: location.x, top: location.y },
-                    ]}
-                    onPress={() => {
-                      if (location.unlocked) {
-                        setHoveredLocation(location.id); // Показать кнопку Explore
-                      }
-                    }}
-                  >
+  useEffect(() => {
+    const { crestId } = route.params || {};
+    if (crestId) {
+      console.log('Received crestId:', crestId);
+      unlockNextLocation(crestId);
+    }
+  }, [route.params]);return (
+    <ImageBackground
+      source={require('../assets/ImageBack.jpg')}
+      style={styles.backgroundImage}
+    >
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.container}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Journey')}
+              style={styles.iconButton}
+            >
+              <Image
+                source={require('../assets/right-arrow.png')}
+                style={styles.exitButtonText}
+              />
+            </TouchableOpacity>
+            <View
+              style={[
+                styles.mapContainer,
+                {
+                  width: mapSize,
+                  height: mapSize,
+                  marginHorizontal: (screenWidth - mapSize) / 2,
+                },
+              ]}
+            >
+              <Image
+                source={require('../assets/map.jpg')}
+                style={styles.mapImage}
+              />
+              {locations.map((location) => (
+                <TouchableOpacity
+                  key={location.id}
+                  style={[
+                    styles.location,
+                    { left: location.x, top: location.y },
+                  ]}
+                  onPress={() => {
+                    if (location.unlocked) {
+                      setHoveredLocation(location.id);
+                    }
+                  }}
+                >
+                  <Image
+                    source={location.image}
+                    style={styles.locationImage}
+                  />
+                  {!location.unlocked && (
                     <Image
-                      source={location.image}
-                      style={styles.locationImage}
+                      source={require('../assets/lock.png')}
+                      style={styles.lockIcon}
                     />
-                    {!location.unlocked && (
-                      <Image
-                        source={require('../assets/lock.png')}
-                        style={styles.lockIcon}
-                      />
-                    )}
-                    {hoveredLocation === location.id && location.unlocked && (
-                      <TouchableOpacity
+                  )}
+                  {hoveredLocation === location.id && location.unlocked && (
+                    <TouchableOpacity
                       style={styles.exploreButton}
-                      onPress={() => navigation.navigate('Quiz', { locationId: location.id })}
+                      onPress={() =>
+                        navigation.navigate('Dialog', { locationId: location.id })
+                      }
                     >
                       <Text style={styles.exploreText}>Explore</Text>
                     </TouchableOpacity>
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-  
-              <TouchableOpacity style={styles.unlockButton} onPress={unlockNextLocation}>
-                <Text style={styles.unlockText}>Unlock Next</Text>
-              </TouchableOpacity>
+                  )}
+                </TouchableOpacity>
+              ))}
             </View>
-          </ScrollView>
-        </SafeAreaView>
-      </ImageBackground>
-    );
-  };
-  const styles = StyleSheet.create({
-    exploreButton: {
-        position: 'absolute',
-        bottom: -30,
-        backgroundColor: '#8B4513',
-        paddingVertical: 8,
-        paddingHorizontal: 15,
-        borderRadius: 5,
-        borderWidth: 2,
-        borderColor: '#F4E3C7',
-      },
-      exploreText: {
-        color: '#FFF',
-        fontSize: 14,
-        fontWeight: 'bold',
-      },
+            {showCongrats && (
+              <View style={styles.congratsContainer}>
+
+                <Image source={require('../assets/mainemblem.jpg')}  style={styles.emblemImage}/>
+                <Text style={styles.congratsText}>
+                Greetings, traveler! You have completed your journey and collected all five pieces of the coat of arms. Now this coat of arms symbolizes your skill, courage and deep understanding of the culture and secrets of France. Now it shines in all its glory, and you are its carrier. The coat of arms of France is now yours!
+
+                </Text>
+                
+                 
+                  
+              <TouchableOpacity
+                style={styles.congratsButton}
+                onPress={resetGame}
+              >
+                <Text style={styles.congratsButtonText}>Start a new journey</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.congratsButton}
+                onPress={() => navigation.navigate('Menu')}
+              >
+                <Text style={styles.congratsButtonText}>Coats of arms</Text>
+              </TouchableOpacity>
+            
+               
+              </View>
+            )}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </ImageBackground>
+  );
+};
+const styles = StyleSheet.create({
+    emblemImage:{
+    width: 200,
+    height: 200,
+    borderRadius:25,
+    marginBottom:10,
+    },
   safeArea: {
     flex: 1,
   },
@@ -176,17 +291,19 @@ const MapScreen = ({ navigation }) => {
     alignItems: 'center',
   },
   locationImage: {
-    width: '100%',
-    height: '100%',
-    backgroundColor:'#F4E3C7',
-    borderRadius:25,
+    width: 80,
+    height: 80,
+    backgroundColor: '#F4E3C7',
+    borderRadius: 25,
+    borderWidth:3,
+    borderColor:'#8B4513',
   },
   lockIcon: {
     position: 'absolute',
     width: 30,
     height: 30,
-    bottom: 0,
-    right: 0,
+    bottom: -10,
+    right: -10,
   },
   exploreButton: {
     position: 'absolute',
@@ -199,18 +316,37 @@ const MapScreen = ({ navigation }) => {
     color: '#FFF',
     fontSize: 14,
   },
-  unlockButton: {
+  congratsContainer: {
     position: 'absolute',
-    bottom: 120,
-    alignSelf: 'center',
-    backgroundColor: '#8B4513',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    width:340,
+    top: '13%',
+    left: '5%',
+    right: '10%',
+    backgroundColor: '#F4E3C7',
     borderRadius: 10,
-    borderColor:'#F4E3C7',
-    borderWidth:3,
+    padding: 20,
+    borderWidth: 3,
+    borderColor: '#8B4513',
+    alignItems: 'center',
   },
-  unlockText: {
+  congratsText: {
+    fontSize: 16,
+    color: '#8B4513',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  congratsButton: {
+    backgroundColor: '#8B4513', // Цвет кнопки
+    paddingVertical: 10, // Отступы сверху и снизу
+    paddingHorizontal: 20, // Отступы по бокам
+    borderRadius: 10, // Скругленные углы
+    borderWidth: 2, // Ширина рамки
+    borderColor: '#F4E3C7', // Цвет рамки
+    width: 200, // Фиксированная ширина кнопки
+    justifyContent: 'center', // Центрирование содержимого по вертикали
+    alignItems: 'center', 
+  },
+  congratsButtonText: {
     color: '#FFF',
     fontSize: 16,
     fontWeight: 'bold',

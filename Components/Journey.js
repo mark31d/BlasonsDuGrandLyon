@@ -17,7 +17,7 @@ const Journey = ({ navigation }) => {
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => navigation.navigate('Menu')}
           style={styles.iconButton}
         >
           <Image
