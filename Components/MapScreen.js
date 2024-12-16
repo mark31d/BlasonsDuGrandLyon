@@ -91,33 +91,24 @@ const MapScreen = ({ navigation, route }) => {
 
   const unlockNextLocation = (crestId) => {
     setLocations((prev) => {
-      let foundCurrent = false;
-      const updated = prev.map((location, index) => {
-        // Разблокируем текущую локацию
+      const updated = prev.map((location) => {
+        // Разблокируем текущую локацию (crestId)
         if (location.id === crestId) {
-          foundCurrent = true;
           return { ...location, unlocked: true };
         }
-        // Если нашли текущую и следующая закрыта - разблокируем её
-        if (foundCurrent && !location.unlocked) {
-          foundCurrent = false; // сбрасываем флаг, чтобы разблокировать только одну следующую локацию
+        // Разблокируем следующую локацию (crestId + 1), если она существует и ещё заблокирована
+        if (location.id === crestId + 1 && !location.unlocked) {
           return { ...location, unlocked: true };
         }
-        // Удаляем логику закрытия предыдущей локации полностью!
         return location;
       });
-
       return updated;
     });
-
-    // Обновляем счетчик
-    setCrestCount((prev) => {
-      
-      if (crestId === 5) {
-        setShowCongrats(true);
-      }
-      
-    });
+  
+    // Если это последняя локация (пятая), показать поздравление
+    if (crestId === 5) {
+      setShowCongrats(true);
+    }
   };
 
   

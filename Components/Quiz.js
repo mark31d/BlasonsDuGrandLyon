@@ -10,248 +10,269 @@ import {
   Dimensions,
   Modal,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import quizData from './quizData';
 
 const screenWidth = Dimensions.get('window').width;
 
 const Quiz = ({ route, navigation }) => {
-    const { locationId } = route.params;
-    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [correctAnswers, setCorrectAnswers] = useState(0);
-    const [showResults, setShowResults] = useState(false);
-    const [timer, setTimer] = useState(20);
-    const [showFeedback, setShowFeedback] = useState(false);
-    const [currentFeedback, setCurrentFeedback] = useState('');
-    const [hasMap, setHasMap] = useState(false);
-    const [hasKey, setHasKey] = useState(false);
-    const [pieces, setPieces] = useState([false, false, false, false, false]); 
-    const [showInventory, setShowInventory] = useState(false);
-  
-    const locationQuiz = quizData[locationId];
-    const questions = locationQuiz.questions;
-  
-    
-    useEffect(() => {
-      const loadInventory = async () => {
-        const map = await AsyncStorage.getItem('hasMap');
-        const key = await AsyncStorage.getItem('hasKey');
-        setHasMap(map === 'true');
-        setHasKey(key === 'true');
-      };
-      loadInventory();
-    }, []);
-  
-    const useItem = (item) => {
-        if (item === 'map' && hasMap) {
-          setHasMap(false); 
-          setCurrentQuestionIndex((prevIndex) => Math.min(prevIndex + 1, questions.length - 1)); 
-        } else if (item === 'key' && hasKey) {
-          setHasKey(false); 
-          handleAnswer(true, 'You used a key to answer correctly!'); 
-        }
-        saveInventory(); 
-      };
-    const saveInventory = async () => {
-      await AsyncStorage.setItem('hasMap', String(hasMap));
-      await AsyncStorage.setItem('hasKey', String(hasKey));
-    };
-  
-    useEffect(() => {
-      let interval;
-      if (!showFeedback && !showResults) {
-        interval = setInterval(() => {
-          setTimer((prev) => (prev > 0 ? prev - 1 : 0));
-        }, 1000);
-      }
-  
-      if (timer === 0 && !showFeedback) {
-        handleAnswer(false, "Time's up! Moving to the next question.");
-      }
-  
-      return () => clearInterval(interval);
-    }, [timer, showFeedback, showResults]);
-  
-    const handleAnswer = (isCorrect, feedback) => {
-      setShowFeedback(true);
-      setCurrentFeedback(feedback);
-  
-      if (isCorrect) {
-        setCorrectAnswers(correctAnswers + 1);
-        const updatedPieces = [...pieces];
-        updatedPieces[currentQuestionIndex] = true;
-        setPieces(updatedPieces);
-      }
-  
-      setTimeout(() => {
-        setShowFeedback(false);
-        setTimer(20);
-  
-        if (currentQuestionIndex < questions.length - 1) {
-          setCurrentQuestionIndex(currentQuestionIndex + 1);
-        } else {
-          if (correctAnswers >= 2 && correctAnswers < 4) {
-            setHasMap(true);
-          } else if (correctAnswers < 2) {
-            setHasKey(true);
-          }
-          saveInventory(); 
-          setShowResults(true);
-        }
-      }, 3000);
-    };
-  
-    const resetQuiz = () => {
-      setCurrentQuestionIndex(0);
-      setCorrectAnswers(0);
-      setShowResults(false);
-      setPieces([false, false, false, false, false]); 
-      setTimer(20);
-    };
-  
-    const renderPieces = () => (
-      <View style={styles.piecesContainer}>
-        {pieces.map((isRevealed, index) => (
-          <Image
-            key={index}
-            source={isRevealed ? require('../assets/mapback.png') : require('../assets/hexagon.png')}
-            style={styles.pieceImage}
-          />
-        ))}
-        <TouchableOpacity onPress={() => setShowInventory(!showInventory)} style={styles.backpackContainer}>
-  <Image source={require('../assets/backpack.png')} style={styles.backpackImage} />
-</TouchableOpacity>
-{showInventory && (
-  <View style={styles.inventoryDropdown}>
-    <TouchableOpacity
-      style={styles.inventoryItem}
-      onPress={() => useItem('map')}
-      disabled={!hasMap}
-    >
-      <Image
-        source={require('../assets/mapback.png')}
-        style={[
-          styles.inventoryImage,
-          !hasMap && styles.disabledItem, 
-        ]}
-      />
-      <Text style={styles.inventoryText}>Map: {hasMap ? '1' : '0'}</Text>
-    </TouchableOpacity>
-    <TouchableOpacity
-      style={styles.inventoryItem}
-      onPress={() => useItem('key')}
-      disabled={!hasKey}
-    >
-      <Image
-        source={require('../assets/key.png')}
-        style={[
-          styles.inventoryImage,
-          !hasKey && styles.disabledItem,
-        ]}
-      />
-      <Text style={styles.inventoryText}>Key: {hasKey ? '1' : '0'}</Text>
-    </TouchableOpacity>
-  </View>
-)}
-      </View>
-    );return (
-      <ImageBackground source={locationQuiz.background} style={styles.background}>
-         <SafeAreaView >
-        <TouchableOpacity
-              onPress={() => navigation.navigate('MapScreen')}
-              style={styles.iconButton}
-            >
-              <Image
-                source={require('../assets/right-arrow.png')}
-                style={styles.exitButtonText}
-              />
-            </TouchableOpacity>
-            </SafeAreaView>
-        <SafeAreaView style={styles.container}>
-       
-        {!showResults ? (
-  <>
-    {!showFeedback ? (
-      <View style={styles.quizContainer}>
-        <View style={styles.timerContainer}>
-          <Image source={require('../assets/timer.png')} style={styles.timerImage} />
-          <Text style={styles.timerText}>{timer}</Text>
-        </View>
-        <Text style={styles.questionCounter}>
-          {currentQuestionIndex + 1}/{questions.length}
-        </Text>
-        <Text style={styles.questionText}>
-          {questions[currentQuestionIndex].question}
-        </Text>
-        {questions[currentQuestionIndex].options.map((option, index) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.optionButton}
-            onPress={() => handleAnswer(option.correct, option.feedback)}
-          >
-            <Text style={styles.optionText}>{option.text}</Text>
-          </TouchableOpacity>
-        ))}
-        {renderPieces()}
-      </View>
-    ) : (
-      <View style={styles.feedbackContainer}>
-        <Image source={locationQuiz.characterImage} style={styles.characterImage} />
-        <Text style={styles.feedbackText}>{currentFeedback}</Text>
-      </View>
-    )}
-  </>
-) : (
-  <View style={styles.resultContainer}>
-    <Text style={styles.resultText}>
-      {correctAnswers >= 4
-        ? locationQuiz.results.crest.message
-        : correctAnswers >= 2
-        ? locationQuiz.results.map.message
-        : locationQuiz.results.key.message}
-    </Text>
+  const { locationId } = route.params;
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [correctAnswers, setCorrectAnswers] = useState(0);
+  const [showResults, setShowResults] = useState(false);
+  const [timer, setTimer] = useState(20);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [currentFeedback, setCurrentFeedback] = useState('');
+  const [inventory, setInventory] = useState({}); // { map: 1, key: 0 }
+  const [showInventory, setShowInventory] = useState(false);
+  const [pieces, setPieces] = useState([false, false, false, false, false]); 
 
-    
-    {correctAnswers >= 4 && (
-      <Image
-        source={locationQuiz.results.crest.image} 
-        style={styles.resultImage}
-      />
-    )}
-    {correctAnswers >= 2 && correctAnswers < 4 && (
-      <Image
-        source={require('../assets/mapback.png')}
-        style={styles.resultImage}
-      />
-    )}
-    {correctAnswers < 2 && (
-      <Image
-        source={require('../assets/key.png')}
-        style={styles.resultImage}
-      />
-    )}
+  const locationQuiz = quizData[locationId];
+  const questions = locationQuiz.questions;
 
-    <TouchableOpacity
-      style={styles.resultButton}
-      onPress={() =>
-        correctAnswers >= 4
-          ? navigation.navigate('MapScreen', { crestId: locationQuiz.results.crest.id })
-          : resetQuiz() 
+  useEffect(() => {
+    const loadInventory = async () => {
+      const storedInventory = await AsyncStorage.getItem('inventory');
+      let loadedInventory = storedInventory ? JSON.parse(storedInventory) : {};
+      
+      // Убедимся, что map и key есть в инвентаре
+      if (!loadedInventory.hasOwnProperty('map')) {
+        loadedInventory.map = 0;
       }
-    >
-      <Text style={styles.resultButtonText}>
-        {correctAnswers >= 4
-          ? locationQuiz.results.crest.buttonText
-          : correctAnswers >= 2
-          ? locationQuiz.results.map.buttonText
-          : locationQuiz.results.key.buttonText}
-      </Text>
-    </TouchableOpacity>
-  </View>
-)}
-        </SafeAreaView>
-      </ImageBackground>
-    );
+      if (!loadedInventory.hasOwnProperty('key')) {
+        loadedInventory.key = 0;
+      }
+  
+      setInventory(loadedInventory);
+    };
+    loadInventory();
+  }, []);
+
+  // Сохранение инвентаря в AsyncStorage
+  const saveInventory = async () => {
+    await AsyncStorage.setItem('inventory', JSON.stringify(inventory));
   };
+
+  // Добавление предметов в инвентарь
+  const addItem = (item, quantity = 1) => {
+    setInventory((prev) => {
+      const updated = { ...prev, [item]: (prev[item] || 0) + quantity };
+      saveInventory();
+      return updated;
+    });
+  };
+
+  // Использование предметов
+  const useItem = (item) => {
+    if (inventory[item] > 0) {
+      setInventory((prev) => {
+        const updated = { ...prev, [item]: prev[item] - 1 };
+        saveInventory();
+        return updated;
+      });
+
+      if (item === 'map') {
+        setCurrentQuestionIndex((prev) => Math.min(prev + 1, questions.length - 1));
+      } else if (item === 'key') {
+        handleAnswer(true, 'You used a key to answer correctly!');
+      }
+    }
+  };
+
+  // Таймер и обработка времени
+  useEffect(() => {
+    let interval;
+    if (!showFeedback && !showResults) {
+      interval = setInterval(() => {
+        setTimer((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+
+    if (timer === 0 && !showFeedback) {
+      handleAnswer(false, "Time's up! Moving to the next question.");
+    }
+
+    return () => clearInterval(interval);
+  }, [timer, showFeedback, showResults]);
+
+  // Обработка ответов
+  const handleAnswer = (isCorrect, feedback) => {
+    setShowFeedback(true);
+    setCurrentFeedback(feedback);
+
+    if (isCorrect) {
+      setCorrectAnswers(correctAnswers + 1);
+      const updatedPieces = [...pieces];
+      updatedPieces[currentQuestionIndex] = true;
+      setPieces(updatedPieces);
+    }
+
+    setTimeout(() => {
+      setShowFeedback(false);
+      setTimer(20);
+
+      if (currentQuestionIndex < questions.length - 1) {
+        setCurrentQuestionIndex(currentQuestionIndex + 1);
+      } else {
+        // Выдача наград на основе результата
+        if (correctAnswers >= 2 && correctAnswers < 4) {
+          addItem('map', 1);
+        } else if (correctAnswers < 2) {
+          addItem('key', 1);
+        }
+        saveInventory();
+        setShowResults(true);
+      }
+    }, 3000);
+  };
+
+  // Сброс квиза
+  const resetQuiz = () => {
+    setCurrentQuestionIndex(0);
+    setCorrectAnswers(0);
+    setShowResults(false);
+    setPieces([false, false, false, false, false]);
+    setTimer(20);
+  };// Отображение инвентаря
+  const renderInventory = () => (
+    <View style={styles.inventoryDropdown}>
+      {Object.entries(inventory).map(([item, count]) => (
+        <TouchableOpacity
+          key={item}
+          style={styles.inventoryItem}
+          onPress={() => useItem(item)}
+          disabled={count <= 0}
+        >
+          <Image
+            source={
+              item === 'map'
+                ? require('../assets/mapback.png')
+                : require('../assets/key.png')
+            }
+            style={[
+              styles.inventoryImage,
+              count <= 0 && styles.disabledItem,
+            ]}
+          />
+          <Text style={styles.inventoryText}>
+            {item.charAt(0).toUpperCase() + item.slice(1)}: {count}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+
+  // Отображение фрагментов карты
+  const renderPieces = () => (
+    <View style={styles.piecesContainer}>
+      {pieces.map((isRevealed, index) => (
+        <Image
+          key={index}
+          source={isRevealed ? require('../assets/mapback.png') : require('../assets/hexagon.png')}
+          style={styles.pieceImage}
+        />
+      ))}
+      <TouchableOpacity
+        onPress={() => setShowInventory(!showInventory)}
+        style={styles.backpackContainer}
+      >
+        <Image source={require('../assets/backpack.png')} style={styles.backpackImage} />
+      </TouchableOpacity>
+      {showInventory && renderInventory()}
+    </View>
+  );
+
+  return (
+    <ImageBackground source={locationQuiz.background} style={styles.background}>
+      <SafeAreaView>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('MapScreen')}
+          style={styles.iconButton}
+        >
+          <Image source={require('../assets/right-arrow.png')} style={styles.exitButtonText} />
+        </TouchableOpacity>
+      </SafeAreaView>
+      <SafeAreaView style={styles.container}>
+        {!showResults ? (
+          <>
+            {!showFeedback ? (
+              <View style={styles.quizContainer}>
+                <View style={styles.timerContainer}>
+                  <Image source={require('../assets/timer.png')} style={styles.timerImage} />
+                  <Text style={styles.timerText}>{timer}</Text>
+                </View>
+                <Text style={styles.questionCounter}>
+                  {currentQuestionIndex + 1}/{questions.length}
+                </Text>
+                <Text style={styles.questionText}>
+                  {questions[currentQuestionIndex].question}
+                </Text>
+                {questions[currentQuestionIndex].options.map((option, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.optionButton}
+                    onPress={() => handleAnswer(option.correct, option.feedback)}
+                  >
+                    <Text style={styles.optionText}>{option.text}</Text>
+                  </TouchableOpacity>
+                ))}
+                {renderPieces()}
+              </View>
+            ) : (
+              <View style={styles.feedbackContainer}>
+                <Image source={locationQuiz.characterImage} style={styles.characterImage} />
+                <Text style={styles.feedbackText}>{currentFeedback}</Text>
+              </View>
+            )}
+          </>
+        ) : (
+          <View style={styles.resultContainer}>
+            <Text style={styles.resultText}>
+              {correctAnswers >= 4
+                ? locationQuiz.results.crest.message
+                : correctAnswers >= 2
+                ? locationQuiz.results.map.message
+                : locationQuiz.results.key.message}
+            </Text>
+            {correctAnswers >= 4 && (
+              <Image
+                source={locationQuiz.results.crest.image}
+                style={styles.resultImage}
+              />
+            )}
+            {correctAnswers >= 2 && correctAnswers < 4 && (
+              <Image
+                source={require('../assets/mapback.png')}
+                style={styles.resultImage}
+              />
+            )}{correctAnswers < 2 && (
+              <Image
+                source={require('../assets/key.png')}
+                style={styles.resultImage}
+              />
+            )}
+            <TouchableOpacity
+              style={styles.resultButton}
+              onPress={() =>
+                correctAnswers >= 4
+                  ? navigation.navigate('MapScreen', { crestId: locationQuiz.results.crest.id })
+                  : resetQuiz()
+              }
+            >
+              <Text style={styles.resultButtonText}>
+                {correctAnswers >= 4
+                  ? locationQuiz.results.crest.buttonText
+                  : correctAnswers >= 2
+                  ? locationQuiz.results.map.buttonText
+                  : locationQuiz.results.key.buttonText}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </SafeAreaView>
+    </ImageBackground>
+  );
+};
 
 const styles = StyleSheet.create({
     resultImage: {

@@ -63,8 +63,8 @@ const styles = StyleSheet.create({
     padding: 10,
     fontWeight: 'bold',
     textAlign: 'center',
-    fontSize: 40,
-    color: 'white',
+    fontSize: 60,
+    color: '#F4E3C7',
     marginBottom: 10,
   },
   logoImage: {
