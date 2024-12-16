@@ -9,6 +9,7 @@ import {
   Image,
   Dimensions,
   Modal,
+  ScrollView
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import quizData from './quizData';
@@ -185,14 +186,17 @@ const Quiz = ({ route, navigation }) => {
   return (
     <ImageBackground source={locationQuiz.background} style={styles.background}>
       <SafeAreaView>
+        <ScrollView>
         <TouchableOpacity
           onPress={() => navigation.navigate('MapScreen')}
           style={styles.iconButton}
         >
           <Image source={require('../assets/right-arrow.png')} style={styles.exitButtonText} />
         </TouchableOpacity>
+        </ScrollView>
       </SafeAreaView>
       <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={{ flex: 1, justifyContent: 'center', alignItems: 'center', }}>
         {!showResults ? (
           <>
             {!showFeedback ? (
@@ -269,6 +273,7 @@ const Quiz = ({ route, navigation }) => {
             </TouchableOpacity>
           </View>
         )}
+        </ScrollView>
       </SafeAreaView>
     </ImageBackground>
   );
