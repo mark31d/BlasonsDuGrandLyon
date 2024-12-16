@@ -23,7 +23,7 @@ const Quiz = ({ route, navigation }) => {
   const [timer, setTimer] = useState(20);
   const [showFeedback, setShowFeedback] = useState(false);
   const [currentFeedback, setCurrentFeedback] = useState('');
-  const [inventory, setInventory] = useState({}); // { map: 1, key: 0 }
+  const [inventory, setInventory] = useState({}); 
   const [showInventory, setShowInventory] = useState(false);
   const [pieces, setPieces] = useState([false, false, false, false, false]); 
 

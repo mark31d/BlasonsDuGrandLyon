@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
+  SafeAreaView
 } from 'react-native';
 
 const Journey = ({ navigation }) => {
@@ -15,6 +16,7 @@ const Journey = ({ navigation }) => {
       source={require('../assets/ImageBack.jpg')}
       style={styles.backgroundImage}
     >
+<SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <TouchableOpacity
           onPress={() => navigation.navigate('Menu')}
@@ -54,10 +56,19 @@ const Journey = ({ navigation }) => {
   <Text style={styles.startButtonText}>Start</Text>
 </TouchableOpacity>
         </View>
+        
       </ScrollView>
+      </SafeAreaView>
     </ImageBackground>
   );
-};const styles = StyleSheet.create({
+  
+};
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        justifyContent: 'space-evenly',
+        marginBottom: 10,
+      },
   backgroundImage: {
     flex: 1,
     resizeMode: 'cover',

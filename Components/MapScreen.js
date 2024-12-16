@@ -12,7 +12,12 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const { width: screenWidth } = Dimensions.get('window');
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const currentDiagonal = Math.sqrt(screenWidth ** 2 + screenHeight **  2);
+const isSmallScreen = screenWidth < 380;
+const baseDiagonal = isSmallScreen ? 770 : 885;
+
+const scaleFactor = currentDiagonal / baseDiagonal;
 
 const MapScreen = ({ navigation, route }) => {
   const [locations, setLocations] = useState([
@@ -118,7 +123,9 @@ const MapScreen = ({ navigation, route }) => {
       console.log('Received crestId:', crestId);
       unlockNextLocation(crestId);
     }
-  }, [route.params]);return (
+  }, [route.params]);
+  
+  return (
     <ImageBackground
       source={require('../assets/ImageBack.jpg')}
       style={styles.backgroundImage}
@@ -135,26 +142,17 @@ const MapScreen = ({ navigation, route }) => {
                 style={styles.exitButtonText}
               />
             </TouchableOpacity>
-            <View
-              style={[
-                styles.mapContainer,
-                {
-                  width: mapSize,
-                  height: mapSize,
-                  marginHorizontal: (screenWidth - mapSize) / 2,
-                },
-              ]}
-            >
-              <Image
-                source={require('../assets/map.jpg')}
-                style={styles.mapImage}
-              />
+            <View style={[styles.mapContainer, { width: mapSize, height: mapSize }]}>
+              <Image source={require('../assets/map.jpg')} style={styles.mapImage} />
               {locations.map((location) => (
                 <TouchableOpacity
                   key={location.id}
                   style={[
                     styles.location,
-                    { left: location.x, top: location.y },
+                    { 
+                      left: location.x * scaleFactor, 
+                      top: location.y * scaleFactor 
+                    },
                   ]}
                   onPress={() => {
                     if (location.unlocked) {
@@ -162,10 +160,7 @@ const MapScreen = ({ navigation, route }) => {
                     }
                   }}
                 >
-                  <Image
-                    source={location.image}
-                    style={styles.locationImage}
-                  />
+                  <Image source={location.image} style={styles.locationImage} />
                   {!location.unlocked && (
                     <Image
                       source={require('../assets/lock.png')}
@@ -185,6 +180,7 @@ const MapScreen = ({ navigation, route }) => {
                 </TouchableOpacity>
               ))}
             </View>
+
             {showCongrats && (
               <View style={styles.congratsContainer}>
 
@@ -309,16 +305,21 @@ const styles = StyleSheet.create({
   },
   congratsContainer: {
     position: 'absolute',
-    width:340,
-    top: '13%',
-    left: '5%',
-    right: '10%',
+    width: 340,
     backgroundColor: '#F4E3C7',
     borderRadius: 10,
     padding: 20,
     borderWidth: 3,
     borderColor: '#8B4513',
     alignItems: 'center',
+  
+    // Располагаем по центру экрана
+    top: '50%',
+    left: '50%',
+    transform: [
+      { translateX: -170 }, // половина ширины (340/2)
+      { translateY: -300 }  // половина примерной высоты контейнера
+    ],
   },
   congratsText: {
     fontSize: 16,

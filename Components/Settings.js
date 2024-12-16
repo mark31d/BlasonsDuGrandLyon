@@ -6,7 +6,8 @@ import {
   TouchableOpacity, 
   ImageBackground, 
   SafeAreaView, 
-  Modal
+  Modal,
+  ScrollView
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -31,6 +32,7 @@ const SettingsScreen = ({ navigation }) => {
   return (
     <ImageBackground source={require('../assets/ImageBack.jpg')} style={styles.background}>
       <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={{ flex: 1, justifyContent: 'space-evenly', marginBottom: 10, }}>
         <Text style={styles.title}>Settings</Text>
 
         <View style={styles.setting}>
@@ -124,13 +126,14 @@ const SettingsScreen = ({ navigation }) => {
             </View>
           </View>
         </Modal>
-
+        </ScrollView>
       </SafeAreaView>
     </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
+
   background: { 
     flex: 1,
     resizeMode: 'cover',
