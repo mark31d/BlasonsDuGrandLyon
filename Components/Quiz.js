@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import quizData from './quizData';
-
+import { Vibration } from 'react-native';
+import { useVibration } from './Vibration';
 const screenWidth = Dimensions.get('window').width;
 
 const Quiz = ({ route, navigation }) => {
@@ -96,11 +97,14 @@ const Quiz = ({ route, navigation }) => {
     return () => clearInterval(interval);
   }, [timer, showFeedback, showResults]);
 
-  // Обработка ответов
+  const { vibrationOn } = useVibration();
   const handleAnswer = (isCorrect, feedback) => {
     setShowFeedback(true);
     setCurrentFeedback(feedback);
-
+    if (!isCorrect && vibrationOn) {
+      Vibration.vibrate(500); 
+    }
+  
     if (isCorrect) {
       setCorrectAnswers(correctAnswers + 1);
       const updatedPieces = [...pieces];

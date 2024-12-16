@@ -7,6 +7,7 @@ import {
   Modal,
   Image,
   ImageBackground,
+  ScrollView
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -140,6 +141,7 @@ Are you ready to begin your journey and unlock the secrets of the heraldry?
 
     {!modalVisible && !infoVisible && (
       <View style={styles.container}>
+        <ScrollView contentContainerStyle={{ flex: 1, justifyContent: 'space-evenly',  alignItems: 'center',}}>
         <View style={styles.row}>
           <TouchableOpacity
             onPress={() => setModalVisible(true)}
@@ -211,6 +213,7 @@ Are you ready to begin your journey and unlock the secrets of the heraldry?
           source={require('../assets/leo.png')}
           style={styles.image}
         />
+        </ScrollView>
       </View>
     )}
   </ImageBackground>
